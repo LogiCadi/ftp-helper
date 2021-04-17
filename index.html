@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ftp-helper</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="row" v-for="(item, index) in list" :key="index">
+        <input
+          v-model="item.local"
+          placeholder="本地目录"
+          style="width: 336px"
+        />
+        →
+        <input
+          v-model="item.remote"
+          placeholder="服务器目录"
+          style="width: 336px"
+        />
+        <br />
+        <input v-model="item.host" placeholder="主机" />
+        <input v-model="item.port" placeholder="端口" />
+        <input v-model="item.user" placeholder="用户" />
+        <input v-model="item.password" type="password" placeholder="密码" />
+        <button v-if="list.length > 1" @click="deleteRow(index)">删除</button>
+        <hr />
+      </div>
+
+      <button @click="deploy" :disabled="disabled">
+        {{disabled? '部署中...' : '一键部署' }}
+      </button>
+      <button @click="addRow">添加</button>
+
+      <div
+        class="row"
+        v-for="(item, index) in log"
+        :key="index"
+        style="padding: 5px"
+      >
+        {{item}}
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/vue"></script>
+    <script>
+      const { ipcRenderer } = require("electron");
+      new Vue({
+        el: "#app",
+        data: {
+          disabled: false,
+          list: JSON.parse(localStorage.getItem("deploy")) || [{}],
+          log: [],
+        },
+        watch: {
+          list() {
+            localStorage.setItem("deploy", JSON.stringify(this.list));
+          },
+        },
+        methods: {
+          async deploy() {
+            this.disabled = true;
+            this.log = this.log.concat(
+              await ipcRenderer.invoke("deploy", this.list)
+            );
+            this.disabled = false;
+          },
+          addRow() {
+            this.list.push({ ...this.list[this.list.length - 1] });
+          },
+          deleteRow(index) {
+            this.list.splice(index, 1);
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
